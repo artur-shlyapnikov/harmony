@@ -1,0 +1,22 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+coverage/
+*.log
+.ux-shots/
+.wrangler/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.envrc
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store
+
+# Historical one-off profiling and UI investigation scripts (kept locally)
+/scripts/r[0-9]*

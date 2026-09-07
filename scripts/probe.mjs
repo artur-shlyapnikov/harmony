@@ -1,0 +1,30 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+page.on('console', (m) => { if (m.type() === 'error') console.log('ERR', m.text().slice(0, 300)); });
+await page.goto('http://localhost:5173/');
+await page.waitForLoadState('networkidle');
+await page.getByRole('button', { name: 'Новый проект' }).click();
+await page.getByLabel('Название').fill('P');
+await page.getByLabel('Количество тактов').fill('16');
+await page.getByRole('button', { name: 'Создать', exact: true }).click();
+await page.getByTestId('melody-lane').waitFor();
+await page.getByRole('button', { name: 'Нота', exact: true }).click();
+await page.waitForTimeout(200);
+const lane = page.getByTestId('melody-lane');
+const dump = (label) => page.evaluate((l) => {
+  const notes = [...document.querySelectorAll('[data-note-id]')].map((n) => {
+    const r = n.getBoundingClientRect();
+    return `@${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)}`;
+  });
+  const sc = document.querySelector('.timeline-scroller');
+  return `${l}: n=${notes.length} [${notes.join(' | ')}] scrollLeft=${sc.scrollLeft}`;
+}, label);
+console.log(await dump('start'));
+await lane.click({ position: { x: 40, y: 306 } });
+await page.waitForTimeout(150);
+console.log(await dump('after draw1'));
+await lane.click({ position: { x: 330, y: 306 } });
+await page.waitForTimeout(150);
+console.log(await dump('after draw2'));
+await browser.close();

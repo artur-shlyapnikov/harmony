@@ -1,0 +1,1188 @@
+:root {
+  color-scheme: dark;
+
+  --color-bg: #14161a;
+  --color-surface: #1d2026;
+  --color-border: #2c313a;
+  --color-border-strong: #4a5260;
+  --color-text: #e8eaee;
+  --color-text-muted: #9aa1ad;
+  --color-accent: #5b8cff;
+  --color-chord-block: #3a3555;
+  --color-chord-block-border: #57507e;
+  --color-danger: #ff5b6a;
+
+  --font-family-base:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-size-base: 16px;
+  --line-height-base: 1.5;
+  --space-page: 24px;
+  --radius-medium: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visually hidden, still read by screen readers (editor page heading). */
+.sr-only {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-page);
+}
+
+.page h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.page p {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-medium);
+}
+
+.error-boundary {
+  padding: var(--space-page);
+}
+
+.error-boundary pre {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  padding: 12px;
+  overflow-x: auto;
+}
+
+/* --- Buttons ----------------------------------------------------------- */
+
+button {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 4px 12px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* Hover response for every bare button (transport, dialogs, toasts, undo/redo):
+   the base style had none, leaving 20+ controls visually dead under the
+   pointer on the dark theme. Specialized hovers (title, back, zoom,
+   suggestion cards) set colors and compose with this. */
+@media (hover: hover) {
+  button:hover:not(:disabled) {
+    filter: brightness(1.18);
+  }
+}
+
+.button-primary {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.button-danger {
+  background-color: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* --- Toolbar ------------------------------------------------------------ */
+
+.toolbar {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex: none;
+  padding: 8px var(--space-page);
+}
+
+.toolbar-groups {
+  align-items: center;
+  column-gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.toolbar-row-secondary {
+  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.toolbar-title {
+  /* Click-to-edit rename: a quiet button that reads as the project title. */
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: text;
+  font-weight: 600;
+  min-width: 100px;
+  max-width: 220px;
+  overflow: hidden;
+  padding: 2px 4px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .toolbar-title:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+
+.toolbar-back {
+  /* Quiet exit affordance: secondary next to the title it precedes. */
+  color: var(--color-text-muted);
+  flex: none;
+  padding: 2px 8px;
+}
+
+@media (hover: hover) {
+  .toolbar-back:hover {
+    color: var(--color-text);
+  }
+}
+
+.toolbar-title-input {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-small, 4px);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  max-width: 220px;
+  min-width: 100px;
+  padding: 2px 4px;
+}
+
+/* Save state: quiet text, not a pill — dirty must not outshout the music. */
+.toolbar-save-badge {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 2px 0;
+  white-space: nowrap;
+  /* Reserve the widest normal-cycle label («Есть изменения», 94px @12px) so the
+     dirty→saving→saved flips never re-wrap the toolbar rows — otherwise the
+     whole lanes workspace bounces one row (~33px) on the first edit and the
+     pointer→pitch mapping shifts under a drawing hand. Lives in the secondary
+     row: the primary row has no 94px of slack to reserve at 1500px. */
+  min-width: 94px;
+  text-align: left;
+}
+
+.toolbar-save-badge-saving {
+  color: var(--color-text-muted);
+}
+
+.toolbar-save-badge-saved {
+  color: #4caf78;
+}
+
+.toolbar-save-badge-dirty {
+  color: var(--color-accent);
+}
+
+.toolbar-save-badge-error {
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-medium);
+  color: var(--color-danger);
+  padding: 2px 8px;
+}
+
+.toolbar-tools button[aria-pressed='true'] {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+}
+
+.toolbar-export {
+  flex: none;
+}
+
+.toolbar-hints {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  /* Claim only the space LEFT OVER on the transport line (flex-basis 0):
+   * a content-sized hint box was wide enough to push «Экспортировать MIDI»
+   * onto its own wrapped row at laptop widths — a lone CTA there reads as a
+   * layout bug. The decorative text wraps inside whatever is left instead. */
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: right;
+  white-space: normal;
+}
+
+/* Half-screen tiling (~735px on a 14" MacBook): let the hints take a line of
+ * their own again — the transport cluster itself wraps below this width, so
+ * the leftover-space trick no longer applies. */
+@media (max-width: 920px) {
+  .toolbar-hints {
+    flex: 0 1 auto;
+    margin-left: auto;
+  }
+}
+
+.toolbar-group {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  /* Text itself stays unwrapped (labels don't break mid-word); wrap only
+   * lets flex items (e.g. the transport status) drop to a next line instead
+   * of pushing the group past the viewport at narrow widths. */
+  white-space: nowrap;
+}
+
+.toolbar-group select,
+.toolbar-group input {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  padding: 3px 6px;
+}
+
+.toolbar-group input[type="number"] {
+  width: 72px;
+}
+
+.transport-status {
+  align-items: center;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.transport-status::before {
+  background-color: currentColor;
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  width: 6px;
+}
+
+.transport-status-idle,
+.transport-status-paused {
+  color: var(--color-text-muted);
+}
+
+.transport-status-starting {
+  color: var(--color-accent);
+}
+
+.transport-status-playing {
+  color: #4caf78;
+}
+
+.transport-status-error {
+  color: var(--color-danger);
+}
+
+.storage-banner {
+  align-items: center;
+  background-color: rgba(255, 91, 106, 0.15);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-medium);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 12px;
+}
+
+/* --- Editor layout (§3.20) --------------------------------------------- */
+
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.editor-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-lanes {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  /* Short viewports scroll the lanes instead of silently clipping the
+     chord lane: the container shrinks below the fixed lane heights, and
+     overflow:hidden turned that into unreachable content. */
+  overflow-y: auto;
+  /* Over-scrolling the lanes must not chain to the root and rubber-band
+     the whole app (100vh page, nothing to scroll). */
+  overscroll-behavior: contain;
+  position: relative;
+}
+
+/* macOS overlay scrollbars are invisible until touched, so at short
+   viewports the chord lane sat below the fold with zero affordance - the
+   staff ends at G2 looking complete. Chromium/Safari: a custom scrollbar
+   paints whenever content overflows (auto => nothing reserved when it
+   fits). Setting scrollbar-width/color (standard props) would DISABLE the
+   webkit pseudo in Chromium, so they are guarded to Firefox only. */
+.editor-lanes::-webkit-scrollbar {
+  width: 8px;
+}
+
+.editor-lanes::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.editor-lanes::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@supports (-moz-appearance: none) {
+  .editor-lanes {
+    scrollbar-color: var(--color-border) transparent;
+    scrollbar-width: thin;
+  }
+}
+/* Landscape phones (667×375) and narrow portraits (320/360×568+): the
+ * toolbar's wrapped rows squeeze the editor-body, so the workspace wins:
+ * drop the pointer-hints line and let the lanes claim the free space via
+ * flex-grow. The bottom panel keeps its 120px floor and scrolls
+ * internally — with an inspector open that floor preserves more lane
+ * space than content-sizing would (84px vs ~41px of lanes at 320×568).
+ * Its base rule below intentionally stays later in the cascade. */
+@media (max-height: 520px), (max-width: 360px) {
+  .toolbar-hints {
+    display: none;
+  }
+  .editor-lanes {
+    flex: 1 1 auto;
+  }
+}
+
+.editor-bottom {
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 120px;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding: 10px var(--space-page);
+}
+
+
+/* Timeline viewport: zoom row + gutter + shared scroller (I5, I10). */
+.timeline-zoom {
+  align-self: flex-start;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  display: flex;
+  margin-bottom: 8px;
+  overflow: hidden;
+  /* Pinned while the lanes scroll vertically on short viewports. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.timeline-zoom button {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 2px 10px;
+}
+
+@media (hover: hover) {
+  .timeline-zoom button:hover {
+    background-color: var(--color-surface);
+  }
+}
+
+.timeline-zoom [data-testid='zoom-value'] {
+  align-self: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.bar-ruler {
+  cursor: pointer;
+  user-select: none;
+}
+
+.timeline-body {
+  display: flex;
+  min-height: 0;
+}
+
+.timeline-scroller {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Reaching the timeline's end must not chain the leftover wheel delta
+     to the root: the whole page rubber-banded sideways (gutter slid out,
+     blank frame under hard flicks). */
+  overscroll-behavior-x: contain;
+}
+
+.lane-gutter {
+  /* rem-based so the captions («Мелодия»/«Гармония») keep room when the user
+   * scales text (WCAG 1.4.4): a fixed 64px box clipped them onto the bar
+   * numbers at 200% font. */
+  border-right: 1px solid var(--color-border);
+  flex: none;
+  position: relative;
+  user-select: none;
+  width: calc(3.5rem + 6px);
+}
+
+.lane-gutter-ruler {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lane-gutter-lane {
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.lane-gutter-caption {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 0.7rem;
+  padding: 2px 0 0 6px;
+  white-space: nowrap;
+}
+
+.lane-gutter-ruler-caption {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 0 0 6px;
+  white-space: nowrap;
+}
+
+.lane-gutter-row {
+  /* px, not rem: each label is slot-aligned to a fixed-px pitch row of the
+   * grid; scaling it with user font size would overlap adjacent slots. The
+   * gutter is aria-hidden decoration - note names reach AT via the note
+   * buttons' accessible names. */
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 10px;
+  line-height: 1;
+  padding-left: 6px;
+  position: absolute;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.suggestion-header {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+.suggestion-header strong {
+  font-size: 0.9rem;
+}
+
+.suggestion-header span {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.suggestion-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.suggestion-card button {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  text-align: left;
+  width: 100%;
+}
+@media (hover: hover) {
+  .suggestion-card button:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+.suggestion-card-category {
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Per-category hue (§3.12): the risk spectrum is the card grid's scan dimension. */
+.suggestion-card-category--safe {
+  color: #4caf78;
+}
+
+.suggestion-card-category--strong {
+  color: #d99a4e;
+}
+
+.suggestion-card-category--color {
+  color: #b39ddb;
+}
+
+.suggestion-card-symbol {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.suggestion-card-roman {
+  color: var(--color-text-muted);
+}
+
+.suggestion-card-reason {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.inspector {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.inspector label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  gap: 4px;
+}
+
+.inspector input {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  padding: 3px 6px;
+  width: 90px;
+}
+
+.inspector-hint {
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: 0;
+}
+
+/* Idle bottom strip: hint + note-color legend (+ onboarding while empty). */
+.editor-idle {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  margin: auto 0;
+  padding: 12px 0;
+  text-align: center;
+}
+/* Melody-note resize handles: invisible at rest (a persistent dark strip
+   covered 30% of a 1-beat note), revealed on hover or selection. */
+g[data-note-id] rect[data-role='note-edge-l'],
+g[data-note-id] rect[data-role='note-edge-r'] {
+  fill: transparent;
+}
+
+@media (hover: hover) {
+  g[data-note-id]:hover rect[data-role='note-edge-l'],
+  g[data-note-id]:hover rect[data-role='note-edge-r'] {
+    fill: rgba(17, 24, 39, 0.25);
+  }
+}
+
+g[data-note-id][data-selected] rect[data-role='note-edge-l'],
+g[data-note-id][data-selected] rect[data-role='note-edge-r'] {
+  fill: rgba(17, 24, 39, 0.25);
+}
+
+
+.classification-legend {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  gap: 6px 14px;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.classification-legend li {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.legend-swatch {
+  border-radius: 3px;
+  flex: none;
+  height: 10px;
+  width: 18px;
+}
+
+.onboarding-steps {
+  color: var(--color-text-muted);
+  counter-reset: step;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  gap: 8px 24px;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.onboarding-steps li {
+  counter-increment: step;
+}
+
+.onboarding-steps li::before {
+  background-color: var(--color-accent);
+  border-radius: 999px;
+  color: var(--color-bg);
+  content: counter(step);
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  height: 18px;
+  line-height: 18px;
+  margin-right: 6px;
+  text-align: center;
+  width: 18px;
+}
+
+/* Lanes (§3.20): visually distinct on the dark theme (I4). */
+.melody-lane {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  /* Pointer-event drawing surfaces: a touch drag must draw/resize, not
+     scroll the page (mouse behavior unchanged). */
+  touch-action: none;
+  /* Empty lane = draw/marquee canvas; blocks override with their own
+     cursors (grab / ew-resize / pointer). */
+  cursor: crosshair;
+}
+.chord-lane {
+  background-color: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.chord-lane-hint {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 0.8rem;
+  height: 100%;
+  left: 12px;
+  pointer-events: none;
+  position: sticky;
+  white-space: nowrap;
+}
+
+/* Melody lane empty-state hint (SVG text): mirrors .chord-lane-hint. */
+.melody-lane-hint {
+  fill: var(--color-text-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+/* Chord block: readable symbol + roman numeral label (I1). */
+.chord-block {
+  align-items: center;
+  background-color: var(--color-chord-block);
+  border: 1px solid var(--color-chord-block-border);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: var(--color-text);
+  container-type: inline-size;
+  display: flex;
+  gap: 4px;
+  min-width: 24px;
+  overflow: hidden;
+  padding: 0 6px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.chord-block-selected {
+  border-color: var(--color-border-strong);
+}
+
+@media (hover: hover) {
+  .chord-block:hover {
+    border-color: var(--color-border-strong);
+  }
+}
+
+.chord-block-symbol {
+  flex: 0 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chord-block-roman {
+  color: var(--color-text-muted);
+  flex: 0 1 auto;
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Narrow blocks (1 beat at default zoom): symbol only, numeral would clip.
+   The symbol drops to 10px and reclaims the block padding — «Csus4» fits
+   whole, and on altered roots the accidental stays visible instead of
+   ellipsising away with the root («C𝄪…» not «C…»). Longer names still
+   truncate, but only the suffix; the full name stays in the tooltip. */
+@container (max-width: 64px) {
+  .chord-block-roman {
+    display: none;
+  }
+  .chord-block-symbol {
+    font-size: 10px;
+    margin: 0 -6px;
+  }
+}
+
+.chord-block-pattern {
+  flex: none;
+  font-size: 11px;
+}
+
+/* Resize handles are invisible at rest - persistent light strips read as
+   block decoration and muddle the surface (a 1-beat block is 40px wide, so
+   two 6px strips covered 30% of it). They appear on block hover. */
+.chord-block-edge {
+  background: transparent;
+}
+
+@media (hover: hover) {
+  .chord-block:hover .chord-block-edge {
+    background: rgba(232, 234, 238, 0.18);
+  }
+}
+
+.chord-block-selected .chord-block-edge {
+  background: rgba(232, 234, 238, 0.18);
+}
+
+/* Playhead: high-contrast accent line with a top marker (I9). */
+.playhead {
+  background-color: var(--color-accent);
+  z-index: 2;
+}
+
+.playhead::before {
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--color-accent);
+  content: '';
+  left: -4px;
+  position: absolute;
+  top: 0;
+}
+
+/* --- Project list -------------------------------------------------------- */
+
+.project-list-header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.help-text {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 8px 0 16px;
+}
+
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.project-row {
+  align-items: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.project-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+@media (hover: hover) {
+  .project-row:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+.project-row-title {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+}
+@media (hover: hover) {
+  .project-row-title:hover {
+    color: var(--color-accent);
+  }
+}
+
+.project-row-subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.project-row-meta {
+  color: var(--color-text-muted);
+}
+/* Phone widths: the intrinsic-width meta column («Изменён: …») starves the
+ * title block (a long name wraps into 6+ lines beside a floating centered
+ * timestamp). Dropping the meta to its own full-width line lets the title
+ * use the whole row. */
+@media (max-width: 480px) {
+  .project-row-meta {
+    flex-basis: 100%;
+  }
+}
+
+.badge-corrupt {
+  background-color: var(--color-danger);
+  border-radius: 999px;
+  color: var(--color-bg);
+  font-size: 0.75rem;
+  padding: 2px 10px;
+}
+
+.corrupt-panel {
+  border-top: 1px dashed var(--color-danger);
+  flex-basis: 100%;
+  padding-top: 8px;
+}
+
+.empty-state {
+  align-items: center;
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-medium);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.empty-state .button-primary {
+  margin-top: 8px;
+}
+
+.empty-state p {
+  color: var(--color-text);
+  margin: 0;
+}
+
+.empty-state .empty-state-hint {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* --- Dialogs ------------------------------------------------------------ */
+
+.dialog-overlay {
+  /* Scroll escape for viewports shorter than the dialog (landscape phones):
+   * without it the picker's apply/cancel actions were clipped and
+   * unreachable at 375px height. */
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 16px;
+  position: fixed;
+  z-index: 100;
+}
+
+.dialog {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* margin:auto centers the dialog when it fits and keeps it fully
+   * reachable (top included) when the overlay scrolls; align-items:center
+   * would clip the top beyond reach. */
+  margin: auto;
+  max-width: 420px;
+  padding: 20px;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.dialog-title {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.dialog-message {
+  margin: 0;
+}
+
+.dialog-field {
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.dialog-field-hint {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.dialog-field-row {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+}
+
+.dialog-field input,
+.dialog-field select {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  padding: 5px 8px;
+}
+
+.dialog-inline-selects {
+  display: flex;
+  gap: 8px;
+}
+
+/* Dialog paragraphs own their color: `.page p` on the project list otherwise
+   out-specifies (0,1,1 vs 0,1,0) per-class rules and grays dialog text that is
+   mounted inside the page container. */
+.dialog p {
+  color: var(--color-text);
+}
+
+.dialog .dialog-error {
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+
+.chord-picker-dialog {
+  max-height: min(640px, calc(100vh - 48px));
+  overflow-y: auto;
+  width: min(560px, calc(100vw - 32px));
+}
+
+.chord-picker-section + .chord-picker-section {
+  border-top: 1px solid var(--color-border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+/* Section headings: --color-text on --color-surface ≥ 7:1 (§3.20 dark theme). */
+.chord-picker-section-title {
+  color: var(--color-text);
+  display: block;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chord-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.chord-picker-row {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.chord-picker-hint {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.chord-picker-grid button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.chord-picker-preview {
+  color: var(--color-text);
+  display: block;
+  font-size: 1.05rem;
+}
+
+/* --- Toasts --------------------------------------------------------------- */
+
+.toast-host {
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  left: 50%;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 200;
+}
+
+.toast {
+  align-items: center;
+  border-radius: var(--radius-medium);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  display: flex;
+  gap: 12px;
+  /* Long unbreakable tokens (URLs in error details) set the min-content
+     floor; without a cap the toast overflows narrow viewports. */
+  max-width: min(92vw, 560px);
+  min-width: 260px;
+  padding: 8px 12px;
+}
+
+.toast-message {
+  overflow-wrap: anywhere;
+}
+
+.toast-error {
+  border-color: var(--color-danger);
+}
+
+.toast-success {
+  border-color: #4caf78;
+}
+
+.toast-info {
+  border-color: var(--color-accent);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  /* 24×24 minimum target (WCAG 2.5.8); the toast row is 24px tall already,
+     so the floor costs no height — toasts vanish in 4.5s, precision
+     dismissals must not demand precision. */
+  line-height: 1;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0 2px;
+}
