@@ -6,7 +6,7 @@
  * edits never reach dispatch; success is decided BEFORE any dispatch — no
  * object-identity probing.
  *
- * Toast-copy policy note: the shell table below reproduces the historical
+ * Toast-copy policy note: the shells below reproduce the historical
  * observable behavior exactly. In particular some commands treated a
  * semantic no-op as an error (`moveNote` onto its own position surfaced
  * «нет места между соседями» via the old identity protocol), while others
@@ -35,7 +35,7 @@ import {
   MAX_MELODY_NOTES,
   MIN_BARS,
 } from '@domain/timeline/constants';
-import { applyProjectEdit, type EditRejection } from '@domain/editing/projectEditor';
+import { applyProjectEdit, type EditRejection, type ProjectEdit } from '@domain/editing/projectEditor';
 import { modeScaleLetters } from '@domain/theory/tonalAdapter';
 import { DOCUMENT_COMMITTED, REPLACED_FROM_LOAD } from './projectDocumentSlice';
 import type { ActiveTool, SessionSelection } from './sessionSlice';
@@ -80,19 +80,21 @@ type UnchangedPolicy =
  * «Проект не открыт» toast; applied → single commit dispatch; unchanged →
  * per-command policy; rejected → reason-mapped (or default) error toast.
  */
+type RunEditConfig = {
+  failureMessage: string;
+  onUnchanged?: UnchangedPolicy;
+  reasonMessages?: {
+    [K in EditRejection['kind']]?:
+      | string
+      | ((reason: Extract<EditRejection, { kind: K }>) => string);
+  };
+};
+
 function runEdit(
   dispatch: Dispatch,
   getState: () => RootState,
-  edit: Parameters<typeof applyProjectEdit>[1],
-  config: {
-    failureMessage: string;
-    onUnchanged?: UnchangedPolicy;
-    reasonMessages?: {
-      [K in EditRejection['kind']]?:
-        | string
-        | ((reason: Extract<EditRejection, { kind: K }>) => string);
-    };
-  },
+  edit: ProjectEdit,
+  config: RunEditConfig,
 ): boolean {
   const present = getState().projectHistory.present;
   if (present === null) {
@@ -125,6 +127,20 @@ function runEdit(
   }
 }
 
+/**
+ * One source of truth for the repetitive payload-to-thunk threading. Each
+ * shell declares its static config plus a payload-to-edit builder. Exported
+ * names and call signatures are unchanged.
+ */
+function defineEditCommand<Payload>(
+  config: RunEditConfig,
+  buildEdit: (payload: Payload) => ProjectEdit,
+) {
+  return (payload: Payload) =>
+    (dispatch: Dispatch, getState: () => RootState): boolean =>
+      runEdit(dispatch, getState, buildEdit(payload), config);
+}
+
 // ---------------------------------------------------------------------------
 // Melody commands
 // ---------------------------------------------------------------------------
@@ -139,183 +155,139 @@ export type DocumentAddNotePayload = {
   id?: string;
 };
 
-export function addNoteCmd(payload: DocumentAddNotePayload) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(
-      dispatch,
-      getState,
-      { kind: 'addNote', id: crypto.randomUUID(), ...payload },
-      {
-        failureMessage: 'Не удалось добавить ноту',
-        onUnchanged: 'failure',
-        reasonMessages: {
-          melody_limit: `Достигнут предел мелодии (${MAX_MELODY_NOTES} нот)`,
-        },
-      },
-    );
-}
+export const addNoteCmd = defineEditCommand<DocumentAddNotePayload>(
+  {
+    failureMessage: 'Не удалось добавить ноту',
+    onUnchanged: 'failure',
+    reasonMessages: {
+      melody_limit: `Достигнут предел мелодии (${MAX_MELODY_NOTES} нот)`,
+    },
+  },
+  (payload) => ({ kind: 'addNote', id: crypto.randomUUID(), ...payload }),
+);
 
-export function moveNoteCmd(payload: { id: string; newStartTick: Tick; newMidi: number }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'moveNote', ...payload }, {
-      failureMessage: 'Не удалось сдвинуть ноту: нет места между соседями',
-      onUnchanged: 'failure',
-    });
-}
+export const moveNoteCmd = defineEditCommand<{ id: string; newStartTick: Tick; newMidi: number }>(
+  { failureMessage: 'Не удалось сдвинуть ноту: нет места между соседями', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'moveNote', ...payload }),
+);
 
-export function resizeNoteCmd(payload: { id: string; newDurationTicks: Tick }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'resizeNote', ...payload }, {
-      failureMessage: 'Не удалось изменить длину ноты: мешает соседняя нота',
-      onUnchanged: 'failure',
-    });
-}
+export const resizeNoteCmd = defineEditCommand<{ id: string; newDurationTicks: Tick }>(
+  { failureMessage: 'Не удалось изменить длину ноты: мешает соседняя нота', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'resizeNote', ...payload }),
+);
 
-export function moveResizeNoteCmd(payload: { id: string; newStartTick: Tick; newDurationTicks: Tick }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'moveResizeNote', ...payload }, {
-      failureMessage: 'Не удалось изменить ноту: мешает соседняя нота',
-      onUnchanged: 'failure',
-    });
-}
+export const moveResizeNoteCmd = defineEditCommand<{ id: string; newStartTick: Tick; newDurationTicks: Tick }>(
+  { failureMessage: 'Не удалось изменить ноту: мешает соседняя нота', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'moveResizeNote', ...payload }),
+);
 
-export function deleteNoteCmd(payload: { id: string }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    // SEL-1: a dangling selection left by this delete is repaired by the
-    // root reconcile choke point, not here.
-    runEdit(dispatch, getState, { kind: 'deleteNote', ...payload }, {
-      failureMessage: 'Нота не найдена',
-      onUnchanged: 'failure',
-    });
-}
+// SEL-1: a dangling selection left by this delete is repaired by the
+// root reconcile choke point, not here.
+export const deleteNoteCmd = defineEditCommand<{ id: string }>(
+  { failureMessage: 'Нота не найдена', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'deleteNote', ...payload }),
+);
 
 /** §3.20 Delete over a range selection: removes ALL melody notes AND chords
  *  intersecting [startTick, endTick) as ONE undoable mutation (§3.8). A range
  *  covering nothing is a rejected no-op. On success the range selection is
  *  cleared by the root reconcile choke point (SEL-1). */
-export function deleteEventsInRangeCmd(payload: { startTick: Tick; endTick: Tick }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'deleteEventsInRange', ...payload }, {
-      failureMessage: 'В выделенном диапазоне нет событий',
-      onUnchanged: 'failure',
-    });
-}
+export const deleteEventsInRangeCmd = defineEditCommand<{ startTick: Tick; endTick: Tick }>(
+  { failureMessage: 'В выделенном диапазоне нет событий', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'deleteEventsInRange', ...payload }),
+);
 
-export function setNoteVelocityCmd(payload: { id: string; velocity: number }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setNoteVelocity', ...payload }, {
-      failureMessage: 'Нота не найдена',
-      onUnchanged: 'failure',
-      reasonMessages: {
-        velocity_out_of_range: 'Громкость должна быть целым числом от 1 до 127',
-      },
-    });
-}
+export const setNoteVelocityCmd = defineEditCommand<{ id: string; velocity: number }>(
+  {
+    failureMessage: 'Нота не найдена',
+    onUnchanged: 'failure',
+    reasonMessages: {
+      velocity_out_of_range: 'Громкость должна быть целым числом от 1 до 127',
+    },
+  },
+  (payload) => ({ kind: 'setNoteVelocity', ...payload }),
+);
 
-export function setNoteSpellingOverrideCmd(payload: {
+export const setNoteSpellingOverrideCmd = defineEditCommand<{
   id: string;
   override: SpelledPitchClass | null;
-}) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setNoteSpellingOverride', ...payload }, {
-      failureMessage: 'Нота не найдена',
-      // §3.8 mutation economy: re-selecting the current spelling is a silent
-      // semantic no-op — report applied WITHOUT dispatching (no error toast).
-      onUnchanged: 'silent',
-    });
-}
+}>(
+  {
+    failureMessage: 'Нота не найдена',
+    // §3.8 mutation economy: re-selecting the current spelling is a silent
+    // semantic no-op — report applied WITHOUT dispatching (no error toast).
+    onUnchanged: 'silent',
+  },
+  (payload) => ({ kind: 'setNoteSpellingOverride', ...payload }),
+);
 
-export function moveNoteSemitonesCmd(payload: { id: string; delta: number }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'moveNoteSemitones', ...payload }, {
-      failureMessage: 'Не удалось сдвинуть ноту',
-      onUnchanged: 'failure',
-      reasonMessages: {
-        midi_out_of_range: (reason) =>
-          `Не удалось сдвинуть ноту: MIDI ${reason.midi} вне диапазона ${MIDI_MIN}..${MIDI_MAX}`,
-      },
-    });
-}
+export const moveNoteSemitonesCmd = defineEditCommand<{ id: string; delta: number }>(
+  {
+    failureMessage: 'Не удалось сдвинуть ноту',
+    onUnchanged: 'failure',
+    reasonMessages: {
+      midi_out_of_range: (reason) =>
+        `Не удалось сдвинуть ноту: MIDI ${reason.midi} вне диапазона ${MIDI_MIN}..${MIDI_MAX}`,
+    },
+  },
+  (payload) => ({ kind: 'moveNoteSemitones', ...payload }),
+);
 
 // ---------------------------------------------------------------------------
 // Harmony commands
 // ---------------------------------------------------------------------------
 
-export function addChordRangeCmd(payload: {
+export const addChordRangeCmd = defineEditCommand<{
   startTick: Tick;
   durationTicks: Tick;
   chord: ChordSpec;
-}) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(
-      dispatch,
-      getState,
-      { kind: 'addChordRange', id: crypto.randomUUID(), ...payload },
-      {
-        failureMessage: 'Не удалось добавить аккорд: достигнут предел событий',
-        onUnchanged: 'failure',
-        reasonMessages: {
-          chord_limit: `Достигнут предел гармонии (${MAX_CHORD_EVENTS} аккордов)`,
-        },
-      },
-    );
-}
+}>(
+  {
+    failureMessage: 'Не удалось добавить аккорд: достигнут предел событий',
+    onUnchanged: 'failure',
+    reasonMessages: {
+      chord_limit: `Достигнут предел гармонии (${MAX_CHORD_EVENTS} аккордов)`,
+    },
+  },
+  (payload) => ({ kind: 'addChordRange', id: crypto.randomUUID(), ...payload }),
+);
 
-export function setChordSpecCmd(payload: { id: string; chord: ChordSpec }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setChordSpec', ...payload }, {
-      failureMessage: 'Аккорд не найден',
-      // §3.8 mutation economy: re-selecting the current spec is a silent
-      // semantic no-op — report applied WITHOUT dispatching (no toast).
-      onUnchanged: 'silent',
-    });
-}
+export const setChordSpecCmd = defineEditCommand<{ id: string; chord: ChordSpec }>(
+  {
+    failureMessage: 'Аккорд не найден',
+    // §3.8 mutation economy: re-selecting the current spec is a silent
+    // semantic no-op — report applied WITHOUT dispatching (no toast).
+    onUnchanged: 'silent',
+  },
+  (payload) => ({ kind: 'setChordSpec', ...payload }),
+);
 
-export function deleteChordCmd(payload: { id: string }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'deleteChord', ...payload }, {
-      failureMessage: 'Аккорд не найден',
-      onUnchanged: 'failure',
-    });
-}
+export const deleteChordCmd = defineEditCommand<{ id: string }>(
+  { failureMessage: 'Аккорд не найден', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'deleteChord', ...payload }),
+);
 
-export function moveChordCmd(payload: { id: string; newStartTick: Tick }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'moveChord', ...payload }, {
-      failureMessage: 'Не удалось сдвинуть аккорд: нет места между соседями',
-      onUnchanged: 'failure',
-    });
-}
+export const moveChordCmd = defineEditCommand<{ id: string; newStartTick: Tick }>(
+  { failureMessage: 'Не удалось сдвинуть аккорд: нет места между соседями', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'moveChord', ...payload }),
+);
 
-export function resizeChordCmd(payload: { id: string; newDurationTicks: Tick }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'resizeChord', ...payload }, {
-      failureMessage: 'Не удалось изменить длину аккорда: мешает соседний аккорд',
-      onUnchanged: 'failure',
-    });
-}
+export const resizeChordCmd = defineEditCommand<{ id: string; newDurationTicks: Tick }>(
+  { failureMessage: 'Не удалось изменить длину аккорда: мешает соседний аккорд', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'resizeChord', ...payload }),
+);
 
 /** Atomic left-edge resize: BOTH fields in ONE document mutation → ONE
  *  history entry (§3.7/§3.8). */
-export function moveResizeChordCmd(payload: {
-  id: string;
-  newStartTick: Tick;
-  newDurationTicks: Tick;
-}) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'moveResizeChord', ...payload }, {
-      failureMessage: 'Не удалось изменить аккорд: мешает соседний аккорд',
-      onUnchanged: 'failure',
-    });
-}
+export const moveResizeChordCmd = defineEditCommand<{ id: string; newStartTick: Tick; newDurationTicks: Tick }>(
+  { failureMessage: 'Не удалось изменить аккорд: мешает соседний аккорд', onUnchanged: 'failure' },
+  (payload) => ({ kind: 'moveResizeChord', ...payload }),
+);
 
-export function setChordPatternOverrideCmd(payload: { id: string; pattern: PatternSpec | null }) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setChordPatternOverride', ...payload }, {
-      failureMessage: 'Аккорд не найден',
-      onUnchanged: 'silent',
-    });
-}
+export const setChordPatternOverrideCmd = defineEditCommand<{ id: string; pattern: PatternSpec | null }>(
+  { failureMessage: 'Аккорд не найден', onUnchanged: 'silent' },
+  (payload) => ({ kind: 'setChordPatternOverride', ...payload }),
+);
 
 // ---------------------------------------------------------------------------
 // Global commands
@@ -324,50 +296,47 @@ export function setChordPatternOverrideCmd(payload: { id: string; pattern: Patte
 /** §3.8 rename: one undoable title mutation. Empty/whitespace input is
  *  rejected with an error toast; re-entering the current title is a silent
  *  semantic no-op, mirroring changeBpmCmd's mutation economy. */
-export function setTitleCmd(title: string) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setTitle', title }, {
-      failureMessage: 'Не удалось переименовать проект',
-      onUnchanged: 'silent',
-      reasonMessages: {
-        title_empty: 'Название не может быть пустым',
-      },
-    });
-}
+export const setTitleCmd = defineEditCommand<string>(
+  {
+    failureMessage: 'Не удалось переименовать проект',
+    onUnchanged: 'silent',
+    reasonMessages: {
+      title_empty: 'Название не может быть пустым',
+    },
+  },
+  (title) => ({ kind: 'setTitle', title }),
+);
 
-export function changeBpmCmd(bpm: number) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setBpm', bpm }, {
-      failureMessage: 'Не удалось изменить темп',
-      onUnchanged: 'silent',
-      reasonMessages: {
-        bpm_out_of_range: 'Темп должен быть от 40 до 240',
-      },
-    });
-}
+export const changeBpmCmd = defineEditCommand<number>(
+  {
+    failureMessage: 'Не удалось изменить темп',
+    onUnchanged: 'silent',
+    reasonMessages: {
+      bpm_out_of_range: 'Темп должен быть от 40 до 240',
+    },
+  },
+  (bpm) => ({ kind: 'setBpm', bpm }),
+);
 
 /** §3.8 «add/remove bars»: resizes the timeline as ONE undoable mutation.
  *  Out-of-range or non-integer input is rejected with an error toast (no
  *  dispatch), and re-entering the current bar count is a silent semantic
  *  no-op. */
-export function setBarsCmd(bars: number) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setBars', bars }, {
-      failureMessage: 'Не удалось изменить количество тактов',
-      onUnchanged: 'silent',
-      reasonMessages: {
-        bars_out_of_range: `Количество тактов должно быть целым числом от ${MIN_BARS} до ${MAX_BARS}`,
-      },
-    });
-}
+export const setBarsCmd = defineEditCommand<number>(
+  {
+    failureMessage: 'Не удалось изменить количество тактов',
+    onUnchanged: 'silent',
+    reasonMessages: {
+      bars_out_of_range: `Количество тактов должно быть целым числом от ${MIN_BARS} до ${MAX_BARS}`,
+    },
+  },
+  (bars) => ({ kind: 'setBars', bars }),
+);
 
-export function setDefaultPatternCmd(pattern: PatternSpec) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setDefaultPattern', pattern }, {
-      failureMessage: 'Не удалось изменить паттерн',
-      onUnchanged: 'silent',
-    });
-}
+export const setDefaultPatternCmd = defineEditCommand<PatternSpec>(
+  { failureMessage: 'Не удалось изменить паттерн', onUnchanged: 'silent' },
+  (pattern) => ({ kind: 'setDefaultPattern', pattern }),
+);
 
 /**
  * §3.14 transpose: computes the domain result against the present document
@@ -396,13 +365,10 @@ export function transposeToTonicCmd(targetTonic: SpelledPitchClass) {
   };
 }
 
-export function setModeCmd(mode: ModeId) {
-  return (dispatch: Dispatch, getState: () => RootState): boolean =>
-    runEdit(dispatch, getState, { kind: 'setMode', mode }, {
-      failureMessage: 'Не удалось изменить лад',
-      onUnchanged: 'failure',
-    });
-}
+export const setModeCmd = defineEditCommand<ModeId>(
+  { failureMessage: 'Не удалось изменить лад', onUnchanged: 'failure' },
+  (mode) => ({ kind: 'setMode', mode }),
+);
 
 export function openProjectCmd(project: ProjectDocumentV1) {
   return (dispatch: Dispatch): void => {
