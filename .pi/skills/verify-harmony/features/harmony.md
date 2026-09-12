@@ -1,11 +1,11 @@
 # Add and edit harmony chords
 
-Clicking or dragging an empty area of the Harmony lane selects a beat-snapped range and opens the suggestion panel with categorized chord cards (safe, smooth, strong, color). Cards apply directly; the Добавить аккорд action and double-clicking a chord open the chord picker (roots, scale degrees, families, 30 templates, piano preview).
+Clicking or dragging an empty area of the Harmony lane selects a beat-snapped range and opens the suggestion panel with categorized chord cards (safe, smooth, strong, color). Cards apply directly; the Добавить аккорд… action and double-clicking a chord open the chord picker (roots, scale degrees, families, 30 templates, piano preview).
 
 ## Sub-features
 
 - `harmony-suggest` applies a suggestion card to a selected range.
-- `harmony-picker-new` inserts a chord through the picker (Добавить аккорд).
+- `harmony-picker-new` inserts a chord through the picker (Добавить аккорд…).
 - `harmony-picker-edit` changes an existing chord (double-click → picker → apply).
 - `harmony-inspect` edits root, template, and pattern override in the chord inspector.
 - `harmony-no-color` shows no color-category card when no candidate qualifies.
@@ -14,7 +14,7 @@ Clicking or dragging an empty area of the Harmony lane selects a beat-snapped ra
 
 - In the editor, click or drag empty Harmony lane (`chord-lane`) space to select a range; the suggestion panel (`suggestion-panel`) opens.
 - Choose a suggestion card button to apply it (`[data-chord-id]` block appears with symbol + Roman numeral).
-- Choose `Добавить аккорд` in the suggestion panel for the picker, or double-click an existing chord block (`picker-root` → `picker-apply`).
+- Choose `Добавить аккорд…` in the suggestion panel for the picker, or double-click an existing chord block (`picker-root` → `picker-apply`).
 - Click a chord block to open its inspector (`chord-inspector`).
 
 ## Driving it with Playwright
