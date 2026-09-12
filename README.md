@@ -112,6 +112,10 @@ category, a chord symbol, a contextual Roman numeral, and up to two reasons.
 The engine can return safe, smooth, strong, and color categories. It does
 not show a color card when no candidate qualifies.
 
+The UI selector passes nearby chords and melody context to the recommendation
+engine. It does not pass a previous resolved voicing, so the voice-leading
+component is neutral for suggestion cards in the current UI.
+
 The Добавить аккорд action in the suggestion panel opens the chord picker for
 the selected range. Double-click an existing chord block to open the same
 picker for that chord. The picker provides:
@@ -194,8 +198,9 @@ contains:
 
 The harmony track contains the resolved chord voicings and pattern events. A
 project with no events still produces a valid MIDI file with zero note events.
-The exporter does not write a MIDI key-signature event. The current MIDI
-library does not preserve non-ASCII project titles in the MIDI header.
+The exporter does not write a MIDI key-signature event. The current
+`@tonejs/midi` library does not preserve non-ASCII project titles in the MIDI
+header.
 MIDI export does not depend on audio initialization.
 
 ## Saving and recovery
@@ -255,6 +260,7 @@ Useful just recipes:
 | --- | --- |
 | just --list | List all recipes |
 | just setup | Install dependencies and Chromium |
+| just doctor | Check the local Node.js, npm, Wrangler, Playwright, and Chromium setup |
 | just check | Run typecheck, lint, and unit tests |
 | just ci | Run the check commands and the full end-to-end matrix |
 | just browsers-all | Install Chromium, Firefox, and WebKit |
@@ -298,9 +304,10 @@ analysis, and playback events are derived when needed.
 
 ## Limits and current gaps
 
-- Projects are limited to 128 bars, 2,000 melody notes, and 512 chord events.
+- Projects are limited to 1 to 128 bars, 2,000 melody notes, and 512 chord events.
 - The document format supports one melody lane and one harmony lane.
 - Timing is fixed at 4/4 and PPQ 960. BPM is limited to 40 through 240.
+- Undo history stores up to 100 document states.
 - Melody editing is limited to MIDI 36 through 96. Chord voicing uses the
   stored voicing profile and a maximum of four voices.
 - Chords come from the fixed 30-template catalog. Free-form chord notation is
