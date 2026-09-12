@@ -8,8 +8,7 @@ project with Tone.js, and exports MIDI.
 
 ![Harmony editor](docs/images/editor-composing.png)
 
-The current implementation is an MVP under active development. The user
-interface is in Russian.
+The current implementation is an MVP. The user interface is in Russian.
 
 ## Prerequisites
 
@@ -126,7 +125,8 @@ the root, template, and per-chord pattern override. Chord blocks show the
 chord symbol and its contextual Roman numeral. Chord insertion and edits use
 the one-beat chord grid. The current insertion path is range selection plus
 suggestion or picker. The repository does not implement a separate
-drag-to-draw chord gesture.
+drag-to-draw chord gesture. The toolbar's `Аккорд` button does not change this
+insertion path.
 
 The voicing engine chooses a deterministic voicing for each chord from left to
 right. A new project uses the G2 to G5 range, up to four voices, and a maximum
@@ -194,6 +194,8 @@ contains:
 
 The harmony track contains the resolved chord voicings and pattern events. A
 project with no events still produces a valid MIDI file with zero note events.
+The exporter does not write a MIDI key-signature event. The current MIDI
+library does not preserve non-ASCII project titles in the MIDI header.
 MIDI export does not depend on audio initialization.
 
 ## Saving and recovery
@@ -224,7 +226,7 @@ The last write that reaches IndexedDB wins.
 | Ctrl/Cmd + Z | Undo |
 | Ctrl/Cmd + Shift + Z | Redo |
 | Delete or Backspace | Delete the selected note, chord, or range events |
-| Left or Right | Move the selected event by one grid step |
+| Left or Right | Move the selected event or range by one grid step |
 | Shift + Left or Shift + Right | Resize the selected event by one grid step |
 | Up or Down | Move a selected melody note by one diatonic step |
 | Alt + Up or Alt + Down | Move a selected melody note by one semitone |
