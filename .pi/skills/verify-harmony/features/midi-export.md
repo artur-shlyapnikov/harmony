@@ -1,6 +1,6 @@
 # Export MIDI
 
-Экспортировать MIDI downloads a `.mid` file named after the sanitized project title, rendered from the same event stream as playback: PPQ 960, tempo + 4/4 at tick 0, Melody track on channel 1, Harmony track on channel 2 with resolved voicings and pattern events. An empty project still yields a valid file with zero note events.
+Экспортировать MIDI downloads a `.mid` file named after the sanitized project title, rendered from the same event stream as playback: PPQ 960, tempo + 4/4 at tick 0, Melody track on channel 0, Harmony track on channel 1 with resolved voicings and pattern events. An empty project still yields a valid file with zero note events.
 
 ## Sub-features
 

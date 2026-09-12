@@ -1,6 +1,6 @@
 # Control playback
 
-The transport (Play, Pause, Stop; Space toggles) renders the project through the Tone.js engine — Synth for melody, PolySynth for harmony — from the current playhead. Pause/Stop preserve the playhead for resume; reaching the end rewinds to tick 0. Clicking the bar ruler seeks. Document edits during playback re-render from the playhead.
+The transport (Play, Pause, Stop; Space toggles) renders the project through the Tone.js engine — Synth for melody, PolySynth for harmony — from the current playhead. Pause/Stop preserve the playhead for resume; reaching the end stops with the playhead resting at the end tick, and the next Play restarts at tick 0. Clicking the bar ruler seeks. Document edits during playback re-render from the playhead.
 
 ## Sub-features
 
@@ -8,7 +8,7 @@ The transport (Play, Pause, Stop; Space toggles) renders the project through the
 - `playback-pause-resume` pauses and resumes from the same position.
 - `playback-stop-resume` stops and resumes from the same position.
 - `playback-seek` moves the playhead by clicking the bar ruler (`bar-ruler`).
-- `playback-end-rewind` restarts at tick 0 after reaching the project end.
+- `playback-end-rewind` rests the playhead at the end tick on natural completion; the next Play restarts at tick 0.
 - `playback-audio-failure` shows an error plus `Повторить звук` retry when AudioContext init fails.
 
 ## How to get to it (user POV)
@@ -27,6 +27,7 @@ Preconditions:
 - **Pause/resume.** Choose `Пауза`, read the playhead, choose `Играть`. The playhead is stationary while paused and advances again after resume.
 - **Stop/resume.** Choose `Стоп`, then `Играть`. Playback resumes from the preserved playhead, not tick 0.
 - **Seek.** Click the bar ruler at an offset. The `playhead` position jumps to the click tick.
+- **End rest + restart.** Let playback run to the project end. `transport-status` returns to idle with the `playhead` resting at the end tick (not tick 0); choosing `Играть` again restarts from tick 0 and the playhead advances from there.
 - **Proof.** `transport-status` text at each transition plus two playhead readings proving motion and stillness. Artifacts: `artifacts/playback/status.log`.
 
 ## Gotchas
