@@ -8,7 +8,7 @@ project with Tone.js, and exports MIDI.
 
 ![Harmony editor](docs/images/editor-composing.png)
 
-The current implementation is an MVP. The user interface is in Russian.
+The user interface is in Russian.
 
 ## Prerequisites
 
@@ -127,9 +127,7 @@ picker for that chord. The picker provides:
 An existing chord can be selected to open its inspector. The inspector edits
 the root, template, and per-chord pattern override. Chord blocks show the
 chord symbol and its contextual Roman numeral. Chord placement, moving, and
-resizing use the one-beat chord grid. The current insertion path is range
-selection plus
-suggestion or picker. The repository does not implement a separate
+resizing use the one-beat chord grid. To insert a chord, select a range. Then use the suggestion panel or the picker. The repository does not implement a separate
 drag-to-draw chord gesture. The toolbar's `Аккорд` button does not change this
 insertion path.
 
