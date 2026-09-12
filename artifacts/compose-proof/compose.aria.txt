@@ -1,0 +1,69 @@
+- heading "Проект «Verify Proof»" [level=1]
+- banner:
+  - button "← Проекты"
+  - button "Название проекта — нажмите, чтобы переименовать": Verify Proof
+  - group "Инструменты":
+    - button "Выбор" [pressed]
+    - button "Нота"
+    - button "Аккорд"
+  - button "Отменить" [disabled]
+  - button "Повторить" [disabled]
+  - text: Тональность
+  - combobox "Тональность":
+    - option "C" [selected]
+    - option "G"
+    - option "D"
+    - option "A"
+    - option "E"
+    - option "B"
+    - option "F#"
+    - option "C#"
+    - option "G#"
+    - option "D#"
+    - option "F"
+    - option "Bb"
+    - option "Eb"
+    - option "Ab"
+    - option "Db"
+    - option "Gb"
+    - option "Cb"
+  - text: Лад
+  - combobox "Лад":
+    - option "Ионийский (мажор)" [selected]
+    - option "Дорийский"
+    - option "Фригийский"
+    - option "Лидийский"
+    - option "Миксолидийский"
+    - option "Эолийский (минор)"
+    - option "Локрийский"
+  - text: BPM
+  - spinbutton "Темп BPM": "120"
+  - text: Паттерн
+  - combobox "Паттерн по умолчанию":
+    - option "Аккорд (блок)" [selected]
+    - option "Арпеджио вверх"
+    - option "Арпеджио вниз"
+    - option "Арпеджио вверх-вниз"
+    - option "Бас + аккорд"
+    - option "Бас-квинта-терция"
+  - group "Транспорт":
+    - button "Играть"
+    - button "Пауза" [disabled]
+    - button "Стоп" [disabled]
+    - text: Готов к воспроизведению
+  - status
+  - button "Экспортировать MIDI"
+- button "Уменьшить масштаб": −
+- text: 40 px/beat
+- button "Увеличить масштаб": +
+- text: 1 2 3 4 5 6 7 8
+- img:
+  - button "C5, 2 доли"
+- button "C (I)": C
+- paragraph: Выберите ноту или аккорд на дорожке, либо диапазон на «Гармонии» — для подсказок.
+- list "Цветовая разметка нот":
+  - listitem: Аккордовый тон
+  - listitem: Доступное напряжение
+  - listitem: Ступень лада
+  - listitem: Хроматика
+  - listitem: Вне гармонии
