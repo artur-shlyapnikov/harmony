@@ -1,190 +1,318 @@
 # Harmony
 
-A local-first, browser-based harmonic composition editor. Write a melody, lay down chords, and let the app handle the music theory — roman numerals, voice leading, and next-chord suggestions are computed live from a semantic project model, then rendered to speakers and a MIDI file through one shared pipeline.
-
-![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)
-![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
-![Tone.js](https://img.shields.io/badge/audio-Tone.js-black)
-![Tests](https://img.shields.io/badge/tests-Vitest%20%2B%20Playwright-6e9f18)
+Harmony is an experimental, local-first browser editor for melody and chord
+progressions. It stores project documents in client-side IndexedDB. This
+repository contains no account or application backend. The editor analyzes
+chords in the selected key and mode, suggests chords, plays the rendered
+project with Tone.js, and exports MIDI.
 
 ![Harmony editor](docs/images/editor-composing.png)
 
-*A melody drawn on the staff; the opening chord applied from a suggestion; the panel proposing what comes next — with reasons.*
+The current implementation is an MVP under active development. The user
+interface is in Russian.
 
-## Why it looks like this
+## Prerequisites
 
-Harmony is deliberately **not** a miniature DAW or a score engraver. The source of truth is a semantic document — melody notes, chord identities, tonal context, patterns — and everything you *see or hear* is derived from it by pure functions:
+- Node.js 22.12.0 or newer.
+- npm.
+- A browser with IndexedDB. Playback also needs a working Web Audio
+  AudioContext.
+- The `just` command is optional for the repository recipes.
+- Playwright browsers for end-to-end tests. Chromium is enough for the probe
+  and screenshot scripts. The full end-to-end suite uses Chromium, Firefox,
+  and WebKit.
 
-- **Chord identity ≠ voicing.** `Cmaj9` is stored as a musical object; the concrete `C3–E3–G3–B3–D4` you hear is computed by a voice-leading engine.
-- **Patterns are non-destructive.** An arpeggio exists only in playback and MIDI until you explicitly commit it to notes.
-- **One event pipeline.** Playback and MIDI export consume the same rendered `PlaybackNote` stream, so the file always matches what you heard.
-- **Suggestions are rule-based and explainable.** No ML: deterministic scoring with human-readable reasons.
+## Install and run
 
-## A 60-second tour
+From the repository root:
 
-1. **Create a project** — pick a tonic, one of 7 diatonic modes, and a length.
-2. **Draw a melody** with the note tool: click staff rows to place notes on the diatonic grid (1/16 resolution); in-key spelling is automatic, `Alt + ↑/↓` nudges by semitone for chromatic color.
-3. **Drag a range on the harmony lane** — the suggestion panel scores candidate chords on harmonic function, voice leading, melodic fit, and repetition: *safe / smooth / strong / color*, each with reasons.
-4. **Click a card to apply.** The chord block appears with its roman numeral; the voicing engine has already picked the nearest voicing to what came before.
-5. **`Space` to play**, **Export MIDI** for a two-track file (melody + resolved harmony, PPQ 960).
-6. Walk away — every mutation is undoable and autosaved to IndexedDB (watch the save badge).
+~~~text
+npm ci
+npm run dev
+~~~
 
-## Features
+The Vite development server uses http://localhost:5173 by default.
 
-**Composition**
+The just setup recipe installs the npm dependencies from the lockfile and
+Playwright Chromium:
 
-- Staff-like melody lane: click to place, drag to move, resize to change duration
-- Harmony lane with chord blocks showing symbol + computed roman numeral
-- 7 diatonic modes (Ionian through Locrian), global BPM, 4/4, up to 128 bars
-- Whole-project transposition (atomic) and mode switching that reanalyzes without moving pitches
-
-**Theory, live**
-
-- Per-note highlighting: chord tones, scale tones, tensions, chromatic notes — recomputed as a long note crosses chord boundaries
-- ~30 canonical chord templates across triads, sixths/sevenths, added/extended, and altered dominants — the picker structurally cannot produce an invalid chord
-- Automatic nearest voicings with smooth voice leading (monotonic DP matching, required/preferred/optional chord tones)
-
-**Intelligence**
-
-- Rule-based next-chord suggestions in four categories — *safe*, *smooth*, *strong*, *color* — each with plain-language reasons
-- Non-destructive chord patterns: block, up, down, up-down, bass-chord, 1-5-3-5 — with subdivision, gate, octave span, and velocity
-
-**Playback, export, safety**
-
-- Built-in Tone.js synthesizer with play/pause/stop; editing during playback is allowed
-- Two-track MIDI export (melody + resolved harmony, PPQ 960)
-- Undo/redo for every document mutation (100 entries)
-- Debounced autosave to IndexedDB with corrupt-record quarantine and recovery
-
-## Quick start
-
-Requires Node.js 22.12 or newer. No backend, no accounts — everything stays in your browser.
-
-```bash
-npm ci                  # or: npm install
-npm run dev             # http://localhost:5173
-```
-
-Shortcut for a fresh clone (deps + Chromium for local browser checks):
-
-```bash
+~~~text
 just setup
 just dev
-```
+~~~
 
-Production build and local preview (same bundle e2e and deploy use):
+just dev uses port 5173 with --strictPort. It fails if that port is busy.
 
-```bash
-npm run build                       # typecheck + bundle to dist/
+Build and preview the production bundle:
+
+~~~text
+npm run build
 npx vite preview --port 4173 --strictPort
-# or: just preview
-```
+~~~
 
-Deploy as a static Worker (`wrangler.jsonc`: serves `./dist` with SPA fallback):
+The build runs TypeScript checking and writes the bundle to dist/. The
+Playwright configuration builds and serves this preview automatically for
+end-to-end tests.
 
-```bash
-npm run deploy          # build + wrangler deploy
-# or: just deploy / just deploy-dry (validate without publishing)
-```
+The repository also contains a static Worker deployment configuration:
 
-## Commands
+~~~text
+npm run deploy
+just deploy-dry
+~~~
 
-```bash
-npm test           # Vitest unit suites (domain, state, persistence, audio, midi)
-npm run e2e        # Playwright: builds, serves dist/ on :4173, runs chromium+firefox+webkit
-npm run typecheck  # tsc --noEmit
-npm run lint       # eslint, zero warnings allowed
-```
+npm run deploy builds the project and runs wrangler deploy. The checked-in
+wrangler.jsonc serves dist/ as static assets with SPA history fallback.
+just deploy-dry builds the project and validates the Wrangler deployment
+without publishing it.
 
-`just` shortcuts (`just --list` for all): `just check` (typecheck + lint + unit, pre-push gate), `just ci` (check + full e2e matrix), `just e2e-chromium` / `just e2e-headed` / `just e2e-ui` (fast local iteration), `just probe <script>` (run `scripts/*.mjs`), `just shots` (UX screenshots, needs `just dev`), `just doctor` (node/npm/wrangler/chromium pre-flight), `just clean`.
+## Create a project
 
-`just setup` installs Chromium. Install the full browser matrix before `just e2e` or `just ci` with `just browsers-all`.
+Open the development URL and create a project from the project list. The
+dialog accepts:
 
-## Architecture
+- a title;
+- one of the preset tonic names or a custom letter and accidental;
+- one of seven modes: Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian,
+  or Locrian;
+- 1 to 128 bars.
 
-A modular client monolith. `domain/` is pure TypeScript — no React, no Redux, no I/O — and everything else orchestrates around it.
+New projects use C Ionian, 8 bars, 120 BPM, 4/4, empty melody and harmony
+lanes, and the block default pattern. The project is saved to the
+harmonic-editor IndexedDB database before the editor opens.
 
-```mermaid
-flowchart TD
-    UI[React UI] -->|commands| Store["Redux store<br/>document + session, undo/redo"]
-    Store -->|pure operations| Domain["Music domain<br/>theory · timeline · voicing<br/>recommendations · patterns · transpose"]
-    Store -->|derived state| Selectors[Projections & analysis]
-    Store -->|listener middleware| Effects["Side effects<br/>autosave · transport · export"]
-    Effects --> DB[(IndexedDB<br/>autosave + backups)]
-    Effects --> Audio[Tone.js AudioEngine]
-    Effects --> MIDI[MIDI export]
-    Domain -->|PlaybackNote stream| Audio
-    Domain -->|PlaybackNote stream| MIDI
-```
+The project list can open, duplicate, and delete projects. Project rows show
+the title, modification time, and, when the stored payload contains readable
+metadata, the tonic, mode, bar count, and event counts.
 
-The persisted document is the whole contract between sessions — and it stays declarative:
+## Work in the editor
 
-```ts
-type ProjectDocumentV1 = {
-  schemaVersion: 1;
-  timing: { ppq: 960; bpm: number; timeSignature: { numerator: 4; denominator: 4 }; bars: number }; // 1..128
-  harmonyContext: { tonic: SpelledPitchClass; mode: ModeId };
-  melody: { notes: MelodyNoteEvent[] };   // startTick, durationTicks, midi, spellingOverride?
-  harmony: {
-    chords: ChordEvent[];                 // startTick, durationTicks, chord: ChordSpec
-    defaultPattern: PatternSpec;          // kind, subdivision, gate, octaveSpan, velocity
-    voicingProfile: VoicingProfile;       // range, max 4 voices, ≤ 24-semitone span
-  };
-};
-```
+### Melody
 
-No voicing, highlighting, or playback data in the file — all derived.
+1. Select the Нота tool.
+2. Press and drag in the empty Melody lane. The horizontal position snaps to
+   240 ticks, which is one sixteenth note at PPQ 960. A click without a drag
+   creates one grid step. Dragging sets the duration.
+3. Drag a note body to move it. Drag its left or right edge to resize it.
 
-```
-src/
-├── domain/        # pure music logic: model, theory, timeline, voicing,
-│                  # recommendations, patterns, transpose, render, validation
-├── state/         # Redux slices, command definitions, undo/redo history
-├── app/           # store bootstrap, BrowserRouter routes, listener middleware, DI container
-├── audio/         # AudioEngine singleton over Tone.js
-├── midi/          # MIDI export from the shared render pipeline
-├── persistence/   # Dexie repository, debounced autosave, backups
-├── features/      # editor, notes, chords, projects, transport, suggestions UI
-├── shared/        # dialogs, toasts, focus trap, error boundary
-└── styles/
-tests/             # Vitest suites mirroring src/ (domain, state, persistence, audio, midi, …)
-e2e/               # Playwright scenarios (served from dist/ on :4173)
-scripts/           # one-off probes (node scripts/*.mjs) + ux-shots.mjs
-docs/              # focused product and engineering notes
-justfile           # setup/dev/test/quality/deploy/clean recipes
-wrangler.jsonc     # static-asset Worker + SPA fallback
-```
+New notes use the current mode for their pitch spelling. Melody notes use MIDI
+36 through 96 and velocity 1 through 127. Selecting a note opens an inspector
+with its effective spelling, MIDI number, duration, explicit accidental
+override, velocity, and delete action.
 
-Key invariants: all time is integer ticks (PPQ 960); timeline edits go through one interval operation with replace semantics; history stores documents, never session state; audio objects never enter Redux; a failed AudioContext or storage error never loses the in-memory project.
+The note lane colors each part of a note as a chord tone, available tension,
+scale tone, or chromatic note. A note that crosses chord boundaries is split
+into analysis spans without becoming multiple note events.
+
+### Harmony and suggestions
+
+Click or drag an empty area in the Harmony lane to select a range. The
+selection snaps to 960 ticks, or one beat, and opens the suggestion panel.
+Suggestion cards can be applied directly to the range. Each card has a
+category, a chord symbol, a contextual Roman numeral, and up to two reasons.
+The engine can return safe, smooth, strong, and color categories. It does
+not show a color card when no candidate qualifies.
+
+The Добавить аккорд action in the suggestion panel opens the chord picker for
+the selected range. Double-click an existing chord block to open the same
+picker for that chord. The picker provides:
+
+- 12 root choices and the seven scale-degree choices for the current mode;
+- chord families and 30 fixed chord templates;
+- a formula preview and a two-octave piano preview.
+
+An existing chord can be selected to open its inspector. The inspector edits
+the root, template, and per-chord pattern override. Chord blocks show the
+chord symbol and its contextual Roman numeral. Chord insertion and edits use
+the one-beat chord grid. The current insertion path is range selection plus
+suggestion or picker. The repository does not implement a separate
+drag-to-draw chord gesture.
+
+The voicing engine chooses a deterministic voicing for each chord from left to
+right. A new project uses the G2 to G5 range, up to four voices, and a maximum
+24-semitone span. The inspector shows the resolved MIDI notes and reports
+optional chord tones that were left out.
+
+### Key, mode, tempo, and patterns
+
+The toolbar provides these project controls:
+
+- Changing the key transposes all melody MIDI values and chord roots by the
+  shortest signed semitone distance, then respells them in the new key. The
+  operation is atomic. If any melody note would leave MIDI 36 through 96, the
+  whole change is rejected.
+- Changing the mode changes the harmonic context and re-runs note analysis.
+  It does not move existing notes or change their MIDI values. New notes use
+  the new mode for spelling.
+- BPM accepts values from 40 through 240, including fractional values.
+- The default pattern selector provides block, up, down, upDown, bassChord,
+  and oneFiveThreeFive. A chord can inherit the default or select an override
+  in its inspector.
+
+The stored pattern also has subdivision, gate, octave span, and velocity
+fields. The schema accepts subdivisions of 240, 480, or 960 ticks, gate values
+from 0.1 through 1, octave span 1 or 2, and velocity 1 through 127. The
+current UI exposes the pattern kind and inherit or override choice, but does
+not provide controls for those four fields. New projects use a 480-tick
+subdivision, gate 0.9, octave span 1, and velocity 80.
+
+## Playback
+
+The transport provides Play, Pause, and Stop. Press Space to toggle playback.
+The audio engine uses a Tone.js Synth for the melody and a PolySynth for the
+harmony.
+
+Playback renders the project through src/domain/render/renderProject.ts. That
+render includes resolved chord voicings and pattern events. The playhead can
+be moved by clicking the bar ruler. Pause and Stop preserve the current
+playhead, and the next Play resumes from it. When playback reaches the project
+end, the next Play starts again at tick 0. Loading another project resets the
+playhead.
+
+Accepted document edits during playback re-render and reschedule events from
+the current playhead. A note that ended before the playhead is skipped during
+that reschedule. A note that crosses the playhead starts at the current
+playhead position.
+
+Audio initialization can fail when the browser cannot create or resume an
+AudioContext. The transport then shows an error and a Retry Audio action.
+Editing, saving, and MIDI export remain available in that state.
+
+## MIDI export
+
+Click Экспортировать MIDI in the editor toolbar. The browser downloads a file
+named from the sanitized project title with a .mid extension.
+
+The exporter consumes the same rendered event stream as playback. The file
+contains:
+
+- PPQ 960;
+- a tempo event at tick 0;
+- a 4/4 time signature at tick 0;
+- a Melody track on MIDI channel 1;
+- a Harmony track on MIDI channel 2.
+
+The harmony track contains the resolved chord voicings and pattern events. A
+project with no events still produces a valid MIDI file with zero note events.
+MIDI export does not depend on audio initialization.
+
+## Saving and recovery
+
+Creating a project writes it immediately. Accepted document edits, including
+undo and redo, use a 750 ms debounced autosave. The toolbar shows the save
+state. The app also flushes pending saves when the page becomes hidden,
+receives beforeunload, or receives pagehide.
+
+If a save fails, the editor keeps the current document in memory and shows a
+storage error banner. The banner offers a JSON backup download and a retry.
+The backup contains the complete ProjectDocumentV1 document.
+
+On open, stored data is checked against schema V1 and normalized by sorting
+the two event lanes. There are currently no schema migrations. A corrupt
+payload or a schema version newer than this build is not overwritten. The
+project list offers raw JSON download, deletion, or creation of a new project
+for that record.
+
+Opening the same project in multiple browser tabs has no conflict resolution.
+The last write that reaches IndexedDB wins.
 
 ## Keyboard shortcuts
 
 | Keys | Action |
 | --- | --- |
-| `Space` | Play / pause |
-| `Ctrl/Cmd + Z` / `Ctrl/Cmd + Shift + Z` | Undo / redo |
-| `Delete` / `Backspace` | Delete selection |
-| `←` / `→` | Move by grid |
-| `Shift + ←/→` | Resize by grid |
-| `↑` / `↓` | Move by diatonic step |
-| `Alt + ↑/↓` | Move by semitone |
-| `Escape` | Clear selection / close picker |
+| Space | Play or pause |
+| Ctrl/Cmd + Z | Undo |
+| Ctrl/Cmd + Shift + Z | Redo |
+| Delete or Backspace | Delete the selected note, chord, or range events |
+| Left or Right | Move the selected event by one grid step |
+| Shift + Left or Shift + Right | Resize the selected event by one grid step |
+| Up or Down | Move a selected melody note by one diatonic step |
+| Alt + Up or Alt + Down | Move a selected melody note by one semitone |
+| Escape | Clear the selection or close a picker |
 
-## Contributing
+The shortcuts do not run while typing in a text input, textarea, select, or
+content-editable element.
 
-The README and focused files under `docs/` describe the product and engineering decisions (temporal model, voicing algorithm, recommendation scoring, persistence schema, error handling).
+## Commands and development scripts
 
-House rules:
+Run the npm scripts from the repository root:
 
-- `src/domain/` stays pure: no React, no Redux, no I/O, no browser APIs. If a rule needs the DOM, it belongs outside the domain.
-- Every command that mutates the document goes through the command layer, so undo/redo and autosave keep working.
-- Gates before push: `just check` (`npm run typecheck && npm run lint && npm test`). Playwright e2e for user-visible flows.
+| Command | Purpose |
+| --- | --- |
+| npm run dev | Start the Vite development server |
+| npm run build | Typecheck and build dist/ |
+| npm run typecheck | Run tsc --noEmit |
+| npm run lint | Run ESLint with zero warnings allowed |
+| npm test | Run the Vitest unit suites |
+| npm run e2e | Build, serve the preview, and run Chromium, Firefox, and WebKit tests |
+| npm run deploy | Build and run wrangler deploy |
 
-## Status
+Useful just recipes:
 
-MVP with deliberate limits, enforced with clear messages rather than silent degradation: 128 bars, 2,000 melody notes, 512 chord events, one melody track, one harmony track, 4/4 only. Out of scope for now: audio recording, MIDI import, MusicXML, multi-track instruments, tempo maps, modulation, cloud sync, and collaboration. Multi-tab editing of one project is last-write-wins.
+| Recipe | Purpose |
+| --- | --- |
+| just --list | List all recipes |
+| just setup | Install dependencies and Chromium |
+| just check | Run typecheck, lint, and unit tests |
+| just ci | Run the check commands and the full end-to-end matrix |
+| just browsers-all | Install Chromium, Firefox, and WebKit |
+| just e2e-chromium | Run the end-to-end suite in Chromium |
+| just e2e-headed | Run Chromium tests with a visible browser |
+| just e2e-ui | Open the Playwright UI runner |
+| just preview | Serve dist/ at http://localhost:4173 |
+| just deploy-dry | Build and validate the Wrangler deployment without publishing |
 
-## License
+The one-off browser scripts need the development server at
+http://localhost:5173:
 
-The project is released under the [MIT License](LICENSE). Dependencies and other third-party material retain their own licenses and notices as recorded by their respective packages.
+~~~text
+just probe probe.mjs
+just shots
+~~~
+
+scripts/probe.mjs creates a 16-bar project, draws two notes, and logs their
+geometry. scripts/ux-shots.mjs saves editor screenshots to .ux-shots/. Both
+scripts use Playwright Chromium.
+
+## Repository map
+
+- src/domain/ contains music theory, timeline editing, voicing,
+  recommendations, pattern rendering, transposition, and validation.
+- src/features/ contains the project list, editor lanes, inspectors,
+  suggestions, and transport controls.
+- src/state/ contains the Redux document history and session state.
+- src/audio/ contains Tone.js playback and the external transport state.
+- src/midi/ contains MIDI serialization and browser downloads.
+- src/persistence/ contains Dexie storage, autosave, and backups.
+- tests/ contains Vitest unit and component tests.
+- e2e/ contains Playwright tests against the built preview.
+- scripts/ contains the probe and UX screenshot scripts.
+- wrangler.jsonc configures static asset deployment with SPA fallback.
+
+renderProject is the shared boundary between the domain model and both
+playback and MIDI export. The persisted document stores melody notes, chord
+identities, timing, mode, and pattern settings. Resolved voicings, note
+analysis, and playback events are derived when needed.
+
+## Limits and current gaps
+
+- Projects are limited to 128 bars, 2,000 melody notes, and 512 chord events.
+- The document format supports one melody lane and one harmony lane.
+- Timing is fixed at 4/4 and PPQ 960. BPM is limited to 40 through 240.
+- Melody editing is limited to MIDI 36 through 96. Chord voicing uses the
+  stored voicing profile and a maximum of four voices.
+- Chords come from the fixed 30-template catalog. Free-form chord notation is
+  not implemented.
+- The repository implements MIDI export but no audio recording, MIDI import,
+  MusicXML import, tempo maps, modulation workflow, cloud sync, collaboration,
+  or multi-track instruments.
+- Only schema V1 is accepted, and the migration list is empty.
+- Playback requires a working browser audio context. MIDI export and editing
+  can still work when audio initialization fails.
+- The editor has no conflict resolution for simultaneous edits in multiple
+  browser tabs.
+- The current MIDI library does not preserve non-ASCII project titles in MIDI
+  header metadata. The downloaded filename uses the sanitized project title.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution checks and repository
+rules. The project is released under the [MIT License](LICENSE).
